@@ -1,0 +1,29 @@
+diff --git a/contrib/libzip/mkstemp.c b/contrib/libzip/mkstemp.c
+index 843d5e36..5e95870b 100644
+--- a/contrib/libzip/mkstemp.c
++++ b/contrib/libzip/mkstemp.c
+@@ -41,6 +41,9 @@
+ #ifdef _WIN32
+ #include <io.h>
+ #endif
++#ifdef __APPLE__
++#include <unistd.h>
++#endif
+ #include <stdio.h>
+ #include <stdlib.h>
+ 
+diff --git a/contrib/libzip/zipint.h b/contrib/libzip/zipint.h
+index 5061ee9c..0e5e92f0 100644
+--- a/contrib/libzip/zipint.h
++++ b/contrib/libzip/zipint.h
+@@ -46,6 +46,10 @@
+ #include <io.h>
+ #endif
+ 
++#ifdef __APPLE__
++#include <unistd.h>
++#endif
++
+ #ifndef _ZIP_COMPILING_DEPRECATED
+ #define ZIP_DISABLE_DEPRECATED
+ #endif
