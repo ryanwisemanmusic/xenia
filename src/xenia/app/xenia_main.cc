@@ -502,7 +502,12 @@ void EmulatorApp::OnDestroy() {
 
   // TODO(DrChat): Remove this code and do a proper exit.
   XELOGI("Cheap-skate exit!");
-  std::quick_exit(EXIT_SUCCESS);
+  #if defined(__APPLE__)
+  // This helps properly exit things on Apple, I think????
+    std::_Exit(EXIT_SUCCESS);
+  #else
+    std::quick_exit(EXIT_SUCCESS);
+  #endif
 }
 
 void EmulatorApp::EmulatorThread() {
