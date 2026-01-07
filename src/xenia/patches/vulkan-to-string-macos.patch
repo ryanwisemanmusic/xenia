@@ -1,0 +1,14 @@
+Submodule third_party/Vulkan-Headers contains modified content
+diff --git a/third_party/Vulkan-Headers/include/vulkan/vulkan_to_string.hpp b/third_party/Vulkan-Headers/include/vulkan/vulkan_to_string.hpp
+index cb3ae0d..b127d85 100644
+--- a/third_party/Vulkan-Headers/include/vulkan/vulkan_to_string.hpp
++++ b/third_party/Vulkan-Headers/include/vulkan/vulkan_to_string.hpp
+@@ -8,7 +8,7 @@
+ #ifndef VULKAN_TO_STRING_HPP
+ #define VULKAN_TO_STRING_HPP
+ 
+-#include <vulkan/vulkan_enums.hpp>
++#include "vulkan/vulkan_enums.hpp"
+ 
+ #if __cpp_lib_format
+ #  include <format>  // std::format
