@@ -1,0 +1,32 @@
+Submodule third_party/fmt contains modified content
+diff --git a/third_party/fmt/include/fmt/core.h b/third_party/fmt/include/fmt/core.h
+index 6df2875a..5240e590 100644
+--- a/third_party/fmt/include/fmt/core.h
++++ b/third_party/fmt/include/fmt/core.h
+@@ -375,14 +375,18 @@ template <typename Char> class basic_string_view {
+   FMT_CONSTEXPR
+ #endif
+   basic_string_view(const Char* s)
+-      : data_(s), size_(std::char_traits<Char>::length(s)) {}
+-
+-  /** Constructs a string reference from a ``std::basic_string`` object. */
+-  template <typename Traits, typename Alloc>
+-  FMT_CONSTEXPR basic_string_view(
+-      const std::basic_string<Char, Traits, Alloc>& s) FMT_NOEXCEPT
+-      : data_(s.data()),
+-        size_(s.size()) {}
++      : data_(s), size_(
++#if defined(__APPLE__)
++          // deprecated char_traits<char8_type> on macOS needs a valid C locale
++          std::is_same<Char, internal::char8_type>::value ? 
++          [] (const Char* str) -> size_t {
++              const Char* p = str;
++              while (*p) ++p;
++              return p - str;
++          }(s) :
++#endif
++          std::char_traits<Char>::length(s)
++      ) {}
+ 
+   template <
+       typename S,
