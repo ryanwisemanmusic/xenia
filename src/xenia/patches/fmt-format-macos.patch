@@ -1,0 +1,23 @@
+Submodule third_party/fmt contains modified content
+diff --git a/third_party/fmt/include/fmt/format.h b/third_party/fmt/include/fmt/format.h
+index 4e96539f..55d241cb 100644
+--- a/third_party/fmt/include/fmt/format.h
++++ b/third_party/fmt/include/fmt/format.h
+@@ -576,9 +576,17 @@ class buffer_range : public internal::output_range<
+ class FMT_DEPRECATED u8string_view
+     : public basic_string_view<internal::char8_type> {
+  public:
++#ifdef __APPLE__
++  u8string_view(const char* s)
++      : basic_string_view<internal::char8_type>(
++            reinterpret_cast<const internal::char8_type*>(s),
++            strlen(s)) {}
++#else
+   u8string_view(const char* s)
+       : basic_string_view<internal::char8_type>(
+             reinterpret_cast<const internal::char8_type*>(s)) {}
++#endif
++  
+   u8string_view(const char* s, size_t count) FMT_NOEXCEPT
+       : basic_string_view<internal::char8_type>(
+             reinterpret_cast<const internal::char8_type*>(s), count) {}
