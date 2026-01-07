@@ -449,6 +449,32 @@ def apply_patches():
     print('')
 
 
+def revert_patches():
+    """Reverts all patches in src/xenia/patches from the source tree.
+    """
+    patch_dir = os.path.join(self_path, 'src', 'xenia', 'patches')
+    if not os.path.exists(patch_dir):
+        return
+
+    print('- reverting patches...')
+    patches = glob.glob(os.path.join(patch_dir, '*.patch'))
+    for patch in patches:
+        patch_name = os.path.basename(patch)
+        # -R: reverse (do not forward if already reversed)
+        # -p1: strip first path component
+        # -i: input file
+        # -r -: do not create reject files
+        subprocess.call([
+            'patch',
+            '-p1',
+            '-R',
+            '-f',
+            '-r', '-',
+            '-i', patch,
+            ], cwd=self_path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print('')
+
+
 def get_clang_format_binary():
     """Finds a clang-format binary. Aborts if none is found.
 
@@ -702,7 +728,10 @@ class SetupCommand(Command):
 
         print('- running premake...')
         apply_patches()
-        ret = run_platform_premake(target_os_override=args['target_os'])
+        try:
+            ret = run_platform_premake(target_os_override=args['target_os'])
+        finally:
+            revert_patches()
         print('')
         print('Success!' if ret == 0 else 'Error!')
 
@@ -819,56 +848,63 @@ class BaseBuildCommand(Command):
         if not args['no_premake']:
             print('- running premake...')
             apply_patches()
-            run_platform_premake(cc=args['cc'])
+            try:
+                run_platform_premake(cc=args['cc'])
+            finally:
+                revert_patches()
             print('')
 
-        threads = args['j']
-        if threads < 0:
-            threads = 0
+        try:
+          apply_patches()
+          threads = args['j']
+          if threads < 0:
+              threads = 0
 
-        print('- building (%s):%s...' % (
-            'all' if not len(args['target']) else ', '.join(args['target']),
-            args['config']))
-        if sys.platform == 'win32':
-            if vs_version is None:
-                print('ERROR: Visual Studio is not installed.');
-                result = 1
-            else:
-                targets = None
-                if len(args['target']):
-                    targets = '/t:' + ';'.join(
-                        target + (':Rebuild' if args['force'] else '')
-                        for target in args['target'])
-                else:
-                    targets = '/t:Rebuild' if args['force'] else None
+          print('- building (%s):%s...' % (
+              'all' if not len(args['target']) else ', '.join(args['target']),
+              args['config']))
+          if sys.platform == 'win32':
+              if vs_version is None:
+                  print('ERROR: Visual Studio is not installed.');
+                  result = 1
+              else:
+                  targets = None
+                  if len(args['target']):
+                      targets = '/t:' + ';'.join(
+                          target + (':Rebuild' if args['force'] else '')
+                          for target in args['target'])
+                  else:
+                      targets = '/t:Rebuild' if args['force'] else None
 
-                result = subprocess.call([
-                    'msbuild',
-                    'build/xenia.sln',
-                    '/nologo',
-                    '/m',
-                    '/v:m',
-                    '/p:Configuration=' + args['config'],
-                    ] + ([targets] if targets is not None else []) + pass_args,
-                    shell=False)
-        elif sys.platform == 'darwin':
-            schemes = args['target'] if len(args['target']) else ['xenia-app']
-            nested_args = [['-scheme', scheme] for scheme in schemes]
-            scheme_args = [arg for pair in nested_args for arg in pair]
-            result = subprocess.call([
-                'xcodebuild',
-                '-workspace',
-                'build/xenia.xcworkspace',
-                '-configuration',
-                args['config']
-            ] + scheme_args + pass_args, shell=False, env=dict(os.environ))
-        else:
-            result = subprocess.call([
-                'make',
-                '-j' if threads == 0 else '-j%d' % threads,
-                '-Cbuild/',
-                'config=%s_linux' % (args['config']),
-            ] + pass_args + args['target'], shell=False, env=dict(os.environ))
+                  result = subprocess.call([
+                      'msbuild',
+                      'build/xenia.sln',
+                      '/nologo',
+                      '/m',
+                      '/v:m',
+                      '/p:Configuration=' + args['config'],
+                      ] + ([targets] if targets is not None else []) + pass_args,
+                      shell=False)
+          elif sys.platform == 'darwin':
+              schemes = args['target'] if len(args['target']) else ['xenia-app']
+              nested_args = [['-scheme', scheme] for scheme in schemes]
+              scheme_args = [arg for pair in nested_args for arg in pair]
+              result = subprocess.call([
+                  'xcodebuild',
+                  '-workspace',
+                  'build/xenia.xcworkspace',
+                  '-configuration',
+                  args['config']
+              ] + scheme_args + pass_args, shell=False, env=dict(os.environ))
+          else:
+              result = subprocess.call([
+                  'make',
+                  '-j' if threads == 0 else '-j%d' % threads,
+                  '-Cbuild/',
+                  'config=%s_linux' % (args['config']),
+              ] + pass_args + args['target'], shell=False, env=dict(os.environ))
+        finally:
+          revert_patches()
         print('')
         if result != 0:
             print('ERROR: build failed with one or more errors.')
